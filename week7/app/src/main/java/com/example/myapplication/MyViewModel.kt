@@ -13,14 +13,10 @@ class MyViewModel(context: Context) : ViewModel() {
 
     val repos = repository.repos
 
-    init {
-        refreshData()
-    }
-
     fun refreshData() {
         viewModelScope.launch {
             try {
-                repository.refreshData()
+                // repository.refreshData()
             } catch (e: Exception) {
                 Log.e("Network","Failed to connect to the server!")
             }

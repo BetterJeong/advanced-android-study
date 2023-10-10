@@ -6,9 +6,10 @@ import androidx.work.WorkerParameters
 
 class MyWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result {
+        val username = inputData.getString("username") ?: ""
         val repository = MyRepository(applicationContext)
         try {
-            repository.refreshData()
+            repository.refreshData(username)
         } catch (e: Exception) {
             return Result.retry()
         }

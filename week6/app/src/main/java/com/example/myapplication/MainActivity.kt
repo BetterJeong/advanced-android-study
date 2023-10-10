@@ -31,7 +31,7 @@ class MyViewModel(context: Context) : ViewModel() {
     fun refreshData() {
         viewModelScope.launch {
             try {
-                repository.refreshData()
+                //repository.refreshData()
             } catch (e: Exception) {
                 Log.e("Network","Failed to connect to the server!")
             }
@@ -80,6 +80,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        findViewById<Button>(R.id.startWorker).setOnClickListener { startWorker() }
+        findViewById<Button>(R.id.stopWorker).setOnClickListener { stopWorker() }
+
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = MyAdapter(emptyList())
@@ -92,13 +95,12 @@ class MainActivity : AppCompatActivity() {
 
             recyclerView.adapter = MyAdapter(repos)
         }
-
-        startWorker()
     }
 
     private fun startWorker() {
         //val oneTimeRequest = OneTimeWorkRequest.Builder<MyWorker>()
         //        .build()
+        val username = findViewById<EditText>(R.id.editUsername).text.toString()
 
         val constraints = Constraints.Builder().apply {
             setRequiredNetworkType(NetworkType.UNMETERED) // un-metered network such as WiFi
@@ -110,11 +112,12 @@ class MainActivity : AppCompatActivity() {
         //val repeatingRequest = PeriodicWorkRequestBuilder<MyWorker>(1, TimeUnit.DAYS)
         val repeatingRequest = PeriodicWorkRequestBuilder<MyWorker>(15, TimeUnit.MINUTES)
             .setConstraints(constraints)
+            .setInputData(workDataOf("username" to username))
             .build()
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             MyWorker.name,
-            ExistingPeriodicWorkPolicy.UPDATE,
+            ExistingPeriodicWorkPolicy.KEEP,
             repeatingRequest)
 
 

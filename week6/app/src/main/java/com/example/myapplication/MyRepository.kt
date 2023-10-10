@@ -66,9 +66,9 @@ class MyRepository(context: Context) {
 
     private val myDao = MyDatabase.getDatabase(context).myDao
     val repos = myDao.getAll() // LiveData<List<ReposD>>, viewModel에게 제공하는 데이터
-    suspend fun refreshData() {
+    suspend fun refreshData(username: String) {
         withContext(Dispatchers.IO) {
-            val repos = api.listRepos("test")
+            val repos = api.listRepos(username)
             // 네트워크에서 가져온 데이터를 Room 데이터에 맞게 변환
             val repoDs = repos.map {
                 RepoD(it.name, it.owner.login)

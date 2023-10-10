@@ -2,15 +2,40 @@ package com.example.myapplication
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import androidx.work.*
 import java.lang.StringBuilder
 import java.util.concurrent.TimeUnit
 
-// The repository pattern is a strategy for abstracting data access.
-// ViewModel delegates the data-fetching process to the repository.
+class MyAdapter(val items: List<Repo>) : RecyclerView.Adapter<MyAdapter.MyViewHolder>() {
+    class MyViewHolder(v: View) : RecyclerView.ViewHolder(v) {
+        val tvOwner = v.findViewById<TextView>(R.id.tvOwner)
+        val tvRepo = v.findViewById<TextView>(R.id.tvRepo)
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MyViewHolder {
+        val layoutInflater = LayoutInflater.from(parent.context)
+        val view = layoutInflater.inflate(R.layout.item_layout, parent, false)
+        return MyViewHolder(view)
+    }
+
+    override fun getItemCount(): Int {
+        return items.size
+    }
+
+    override fun onBindViewHolder(holder: MyViewHolder, position: Int) {
+        holder.tvOwner.text = items[position].owner.login
+        holder.tvRepo.text = items[position].name
+    }
+}
 
 class MainActivity : AppCompatActivity() {
     private lateinit var myViewModel : MyViewModel
@@ -22,18 +47,17 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.startWorker).setOnClickListener { startWorker() }
         findViewById<Button>(R.id.stopWorker).setOnClickListener { stopWorker() }
 
-        myViewModel = ViewModelProvider(this, MyViewModel.Factory(this)).get(MyViewModel::class.java)
+        val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = MyAdapter(emptyList())
 
-        myViewModel.repos.observe(this) { repos ->
-            val response = StringBuilder().apply {
-                repos.forEach {
-                    append(it.name)
-                    append(" - ")
-                    append(it.owner)
-                    append("\n")
-                }
-            }.toString()
-            findViewById<TextView>(R.id.textResponse).text = response
+        myViewModel = ViewModelProvider(this, MyViewModel.Factory(this)).get(MyViewModel::class.java)
+        myViewModel.repos.observe(this) { reposD ->
+            val repos = reposD.map {
+                Repo(it.name, Owner(it.owner), "")
+            }
+
+            recyclerView.adapter = MyAdapter(repos)
         }
 
         WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData(MyWorker.name)
@@ -53,6 +77,7 @@ class MainActivity : AppCompatActivity() {
     private fun startWorker() {
         //val oneTimeRequest = OneTimeWorkRequest.Builder<MyWorker>()
         //        .build()
+        val username = findViewById<EditText>(R.id.editUsername).text.toString()
 
         val constraints = Constraints.Builder().apply {
             setRequiredNetworkType(NetworkType.UNMETERED) // un-metered network such as WiFi
@@ -64,11 +89,12 @@ class MainActivity : AppCompatActivity() {
         //val repeatingRequest = PeriodicWorkRequestBuilder<MyWorker>(1, TimeUnit.DAYS)
         val repeatingRequest = PeriodicWorkRequestBuilder<MyWorker>(15, TimeUnit.MINUTES)
             .setConstraints(constraints)
+            .setInputData(workDataOf("username" to username))
             .build()
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             MyWorker.name,
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE,
             repeatingRequest)
 
 
